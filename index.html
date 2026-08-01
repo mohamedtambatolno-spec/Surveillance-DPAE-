@@ -481,6 +481,7 @@
     <h2 style="border:none;margin-bottom:6px;">File d'attente locale</h2>
     <div class="helptext" id="queueEmpty">Aucune fiche en attente pour le moment.</div>
     <div class="queue-list" id="queueList"></div>
+    <button class="btn btn-secondary" id="resyncBtn" type="button" style="margin-top:14px;">Renvoyer toutes les fiches</button>
   </div>
 </main>
 
@@ -630,13 +631,29 @@ function attemptSync(){
       fetch(url,{
         method:'POST',
         mode:'no-cors',
-        headers:{'Content-Type':'application/json'},
         body: JSON.stringify(rec)
       }).then(()=>{ markSynced(rec.localId); showToast('Fiche synchronisée ✓'); })
         .catch(()=>{ /* reste en attente, on réessaiera */ });
     });
   });
 }
+
+function resyncAll(){
+  if(!db) return;
+  const tx = db.transaction('submissions','readwrite');
+  const store = tx.objectStore('submissions');
+  store.openCursor().onsuccess = e=>{
+    const cur = e.target.result;
+    if(cur){
+      const rec = cur.value;
+      rec.synced = false;
+      store.put(rec);
+      cur.continue();
+    }
+  };
+  tx.oncomplete = ()=>{ refreshQueue(); attemptSync(); showToast('Renvoi de toutes les fiches en cours…'); };
+}
+document.getElementById('resyncBtn').addEventListener('click', resyncAll);
 
 // ---- Settings persistence ----
 const syncUrlInput = document.getElementById('syncUrl');
