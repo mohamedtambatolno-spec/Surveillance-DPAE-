@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fiche Terrain — Surveillance DPAE</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3D2B">
+<style>
+  :root{
+    --forest:#1F3D2B;
+    --forest-dark:#142A1D;
+    --laterite:#C1622B;
+    --laterite-dark:#9C4C20;
+    --cream:#F6F3EC;
+    --card:#FFFFFF;
+    --ink:#1A1A1A;
+    --sage:#6B8068;
+    --line:#DDD6C7;
+    --danger:#B3261E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    padding-bottom:100px;
+  }
+  header.signal{
+    background:var(--forest-dark);
+    color:#fff;
+    padding:14px 16px 12px;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+  }
+  .signal-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .signal-title{
+    font-size:14px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    font-weight:700;
+    opacity:.85;
+  }
+  .signal-bars{
+    display:flex;
+    align-items:flex-end;
+    gap:3px;
+    height:16px;
+  }
+  .signal-bars span{
+    width:4px;
+    background:#4a6b52;
+    border-radius:1px;
+    transition:background .3s;
+  }
+  .signal-bars span:nth-child(1){height:5px;}
+  .signal-bars span:nth-child(2){height:9px;}
+  .signal-bars span:nth-child(3){height:13px;}
+  .signal-bars span:nth-child(4){height:16px;}
+  .online .signal-bars span{background:#8FD19E;}
+  .offline .signal-bars span{background:#5a4a3a;}
+  .status-line{
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:12.5px;
+  }
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.18);
+    padding:4px 10px;
+    border-radius:20px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:#8FD19E;}
+  .offline .dot{background:var(--laterite);}
+  .pending-badge{
+    background:var(--laterite);
+    color:#fff;
+    font-weight:700;
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:12px;
+  }
+  main{max-width:640px;margin:0 auto;padding:16px;}
+  .hero{
+    padding:18px 4px 22px;
+  }
+  .hero .eyebrow{
+    font-size:11.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--laterite-dark);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  .hero h1{
+    font-size:24px;
+    line-height:1.25;
+    margin:0 0 6px;
+    color:var(--forest-dark);
+  }
+  .hero p{
+    margin:0;
+    color:#5b5647;
+    font-size:14px;
+    line-height:1.5;
+  }
+  section.card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px 16px;
+    margin-bottom:14px;
+  }
+  section.card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--forest);
+    margin:0 0 14px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  label{
+    display:block;
+    font-size:14px;
+    font-weight:600;
+    margin:14px 0 6px;
+    color:var(--ink);
+  }
+  label.req::after{content:" *"; color:var(--laterite);}
+  label:first-of-type{margin-top:0;}
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    width:100%;
+    padding:12px 12px;
+    font-size:15px;
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    background:#FDFCF9;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:2.5px solid var(--forest);
+    outline-offset:1px;
+    border-color:var(--forest);
+  }
+  textarea{min-height:70px;resize:vertical;}
+  .helptext{font-size:12.5px;color:var(--sage);margin-top:4px;}
+  .checks{display:flex;flex-direction:column;gap:2px;}
+  .check-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 4px;
+    border-bottom:1px solid #F0ECE1;
+    font-size:14.5px;
+  }
+  .check-item:last-child{border-bottom:none;}
+  .check-item input{width:19px;height:19px;flex-shrink:0;}
+  .radio-row{display:flex;gap:10px;}
+  .radio-row.wrap{flex-wrap:wrap;}
+  .radio-row.wrap .radio-opt{flex:1 1 calc(50% - 5px);}
+  .radio-opt{
+    flex:1;
+    text-align:center;
+    padding:12px;
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    background:#FDFCF9;
+  }
+  .radio-opt input{display:none;}
+  .radio-opt.selected{
+    border-color:var(--forest);
+    background:var(--forest);
+    color:#fff;
+  }
+  #detailBlock{display:none;}
+  #detailBlock.show{display:block;}
+  #detailMorsure{display:none;}
+  #detailMorsure.show{display:block;}
+  .banner-negatif{
+    display:none;
+    background:#EEF3EA;
+    border:1.5px solid var(--sage);
+    color:var(--forest-dark);
+    padding:12px 14px;
+    border-radius:10px;
+    font-size:13.5px;
+    margin-top:14px;
+  }
+  .banner-negatif.show{display:block;}
+  footer.bar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    box-shadow:0 -4px 16px rgba(0,0,0,.06);
+    z-index:50;
+  }
+  .btn{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:11px;
+    font-size:15.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--laterite);color:#fff;}
+  .btn-primary:active{background:var(--laterite-dark);}
+  .btn-secondary{background:none;color:var(--forest);border:1.5px solid var(--forest);margin-top:8px;}
+  .toast{
+    position:fixed;
+    top:14px;left:50%;
+    transform:translateX(-50%) translateY(-60px);
+    background:var(--forest-dark);
+    color:#fff;
+    padding:12px 20px;
+    border-radius:10px;
+    font-size:14px;
+    z-index:100;
+    transition:transform .3s;
+    max-width:90%;
+    text-align:center;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .queue-list{margin-top:10px;}
+  .queue-item{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12.5px;padding:8px 0;border-bottom:1px solid #F0ECE1;color:#5b5647;
+  }
+  .queue-item .qtag{
+    font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;
+  }
+  .qtag.wait{background:#FCE9DD;color:var(--laterite-dark);}
+  .qtag.done{background:#E3EFE3;color:var(--forest);}
+  .settings-toggle{
+    text-align:center;font-size:11.5px;color:var(--sage);margin-top:18px;
+    text-decoration:underline;cursor:pointer;
+  }
+</style>
+</head>
+<body class="offline">
+
+<header class="signal" id="signalHeader">
+  <div class="signal-row">
+    <div class="signal-title">DPAE Guéckédou · Surveillance</div>
+    <div class="signal-bars"><span></span><span></span><span></span><span></span></div>
+  </div>
+  <div class="status-line">
+    <span class="status-pill"><span class="dot"></span><span id="statusText">Vérification…</span></span>
+    <span class="pending-badge" id="pendingBadge" style="display:none;">0 en attente</span>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="eyebrow">Fiche de terrain — Chef de poste</div>
+    <h1>Déclaration hebdomadaire de surveillance</h1>
+    <p>Remplissez cette fiche même sans réseau. Elle reste sur votre appareil et s'envoie toute seule dès que la connexion revient.</p>
+  </div>
+
+  <form id="voForm">
+    <section class="card">
+      <h2>1 · Identification</h2>
+      <label class="req">Sous-préfecture</label>
+      <select id="sousPrefecture" required>
+        <option value="">— Choisir —</option>
+        <option>Guéckédou-Centre</option>
+        <option>Bolodou</option>
+        <option>Fangamadou</option>
+        <option>Guendembou</option>
+        <option>Kassadou</option>
+        <option>Koundou</option>
+        <option>Nongoa</option>
+        <option>Ouéndé-Kénéma</option>
+        <option>Tékoulo</option>
+        <option>Terméssadou Djibo</option>
+        <option>Kondembadou</option>
+        <option>Guelo-N'Faly</option>
+      </select>
+
+      <label class="req">Nom du chef de poste</label>
+      <input type="text" id="chefPoste" required>
+
+      <label class="req">Date de la déclaration</label>
+      <input type="date" id="dateDeclaration" required>
+
+      <label class="req">Type de déclaration</label>
+      <div class="radio-row wrap" id="typeRadios">
+        <label class="radio-opt" data-val="Cas suspect">Cas suspect<input type="radio" name="type"></label>
+        <label class="radio-opt" data-val="Cas probable">Cas probable<input type="radio" name="type"></label>
+        <label class="radio-opt" data-val="Morsure animale">Morsure animale<input type="radio" name="type"></label>
+        <label class="radio-opt" data-val="Aucun cas">Aucun cas<input type="radio" name="type"></label>
+      </div>
+      <div class="banner-negatif" id="banniereNegatif">Aucun cas signalé cette semaine. Vous pouvez envoyer directement la fiche.</div>
+    </section>
+
+    <section class="card" id="detailMorsure">
+      <h2>2 · Détails de la morsure</h2>
+
+      <label class="req">Date de la morsure</label>
+      <input type="date" id="mDateMorsure">
+
+      <label class="req">Date de déclaration (morsure)</label>
+      <input type="date" id="mDateDeclaration">
+
+      <h2 style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px;">Victime</h2>
+      <label class="req">Prénoms et nom de la victime</label>
+      <input type="text" id="mVictimeNom">
+
+      <label class="req">Sexe</label>
+      <div class="radio-row" id="mVictimeSexeRadios">
+        <label class="radio-opt" data-val="Masculin">Masculin<input type="radio" name="mVSexe"></label>
+        <label class="radio-opt" data-val="Féminin">Féminin<input type="radio" name="mVSexe"></label>
+      </div>
+
+      <label class="req">Âge</label>
+      <input type="number" min="0" id="mVictimeAge">
+
+      <label>Profession</label>
+      <input type="text" id="mVictimeProfession">
+
+      <label class="req">Localité / village</label>
+      <input type="text" id="mVictimeQuartier">
+
+      <label class="req">Types de morsure</label>
+      <input type="text" id="mTypeMorsure" placeholder="Ex. griffure, morsure superficielle, morsure profonde">
+
+      <label class="req">Localisation anatomique de la morsure</label>
+      <input type="text" id="mLocalisation" placeholder="Ex. main droite, jambe gauche, visage">
+
+      <label class="req">Structure sanitaire de la prise en charge médicale de la victime</label>
+      <input type="text" id="mStructure" placeholder="Ex. Poste de santé de Nongoa">
+
+      <h2 style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px;">Animal mordeur</h2>
+      <label class="req">Etat de l'animal mordeur</label>
+      <select id="mEtatAnimal">
+        <option value="">— Choisir —</option>
+        <option>Vivant apparemment sain</option>
+        <option>Vivant suspect de rage</option>
+        <option>Mort/abattus</option>
+        <option>Errant/non retrouvé</option>
+      </select>
+
+      <label class="req">Statut vaccinal de l'animal mordeur</label>
+      <select id="mVaccinSelect">
+        <option value="">— Choisir —</option>
+        <option>Vacciné (à jour)</option>
+        <option>Non vacciné</option>
+        <option>Inconnu</option>
+      </select>
+
+      <label>Sexe de l'animal</label>
+      <select id="mAnimalSexeSelect">
+        <option value="">— Choisir —</option>
+        <option>Mâle</option>
+        <option>Mâle castré</option>
+        <option>Femelle</option>
+        <option>Inconnu</option>
+      </select>
+
+      <label>Âge de l'animal (années, estimation)</label>
+      <input type="number" min="0" id="mAnimalAge">
+
+      <label class="req">Mise en observation</label>
+      <div class="radio-row" id="mObservationRadios">
+        <label class="radio-opt" data-val="Oui">Oui<input type="radio" name="mObs"></label>
+        <label class="radio-opt" data-val="Non">Non<input type="radio" name="mObs"></label>
+      </div>
+    </section>
+
+    <section class="card" id="detailBlock">
+      <h2>2 · Détails du cas</h2>
+
+      <label class="req">Maladie suspectée</label>
+      <select id="maladie">
+        <option value="">— Choisir —</option>
+        <option>Maladie de Newcastle</option>
+        <option>Influenza Aviaires</option>
+        <option>PPR</option>
+        <option>PPCB</option>
+        <option>Rage</option>
+        <option>Fièvre Aphteuse</option>
+        <option>Charbon bactéridien</option>
+        <option>Charbon symptomatique</option>
+        <option>Tuberculose</option>
+        <option>PPA</option>
+        <option>Rouget de porc</option>
+        <option>Fièvre de la Vallée de Rift</option>
+        <option>Brucellose</option>
+        <option>Pasteurellose</option>
+        <option>Gale</option>
+        <option>DNC</option>
+        <option>Trypanosomiase</option>
+        <option>La Variole caprine ou clavelée</option>
+        <option>Parvovirose</option>
+        <option>Myiase</option>
+        <option>Coccidiose</option>
+        <option>Salmonellose</option>
+        <option>Dysenterie porcine</option>
+        <option>Autres</option>
+      </select>
+
+      <label class="req">Espèce affectée</label>
+      <select id="espece">
+        <option value="">— Choisir —</option>
+        <option>Bovin</option><option>Ovin</option><option>Caprin</option>
+        <option>Porcin</option><option>Volaille (poulet)</option>
+        <option>Volaille (pintade/canard)</option><option>Canin</option>
+        <option>Félin</option><option>Équin</option><option>Autre</option>
+      </select>
+
+      <label class="req">Localité / village</label>
+      <input type="text" id="localite">
+
+      <label>Nom de l'éleveur</label>
+      <input type="text" id="eleveur">
+
+      <label class="req">Date de début des signes cliniques</label>
+      <input type="date" id="dateSignes">
+
+      <label class="req">Effectif du troupeau à risque</label>
+      <input type="number" min="0" id="effectif">
+
+      <label class="req">Nombre d'animaux malades</label>
+      <input type="number" min="0" id="malades">
+
+      <label class="req">Nombre de morts</label>
+      <input type="number" min="0" id="morts">
+
+      <label class="req">Signes cliniques observés</label>
+      <div class="checks" id="signesChecks">
+        <!-- injecté en JS -->
+      </div>
+
+      <label class="req">Prélèvement effectué</label>
+      <div class="radio-row" id="prelevRadios">
+        <label class="radio-opt" data-val="Oui">Oui<input type="radio" name="prelev"></label>
+        <label class="radio-opt" data-val="Non">Non<input type="radio" name="prelev"></label>
+      </div>
+
+      <label>Type d'échantillon</label>
+      <input type="text" id="typeEchantillon" placeholder="Ex. écouvillon nasal, sang, fèces…">
+
+      <label>Mesures prises sur place</label>
+      <textarea id="mesures"></textarea>
+
+      <label>Suggestions</label>
+      <textarea id="suggestions" placeholder="Vos remarques comptent ! Question floue, difficulté rencontrée, idée d'amélioration…"></textarea>
+      <div class="helptext">Même en quelques mots — c'est grâce à vous qu'on améliore l'outil.</div>
+    </section>
+
+    <div class="settings-toggle" id="settingsToggle">Configurer l'adresse de synchronisation</div>
+    <section class="card" id="settingsBlock" style="display:none;">
+      <h2>Synchronisation</h2>
+      <label>Lien Google Apps Script (fourni par la DPAE)</label>
+      <input type="text" id="syncUrl" placeholder="https://script.google.com/macros/s/…">
+      <div class="helptext">À configurer une seule fois. Demandez ce lien à Dr Tolno si vous ne l'avez pas.</div>
+    </section>
+  </form>
+
+  <div class="card" style="margin-top:4px;">
+    <h2 style="border:none;margin-bottom:6px;">File d'attente locale</h2>
+    <div class="helptext" id="queueEmpty">Aucune fiche en attente pour le moment.</div>
+    <div class="queue-list" id="queueList"></div>
+  </div>
+</main>
+
+<footer class="bar">
+  <button class="btn btn-primary" id="submitBtn" type="button">Enregistrer la fiche</button>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SIGNES = [
+  "Fièvre","Diarrhée","Boiterie","Salivation","Toux","Dyspnée","Avortements",
+  "Démangeaisons","Gonflement (ganglions articulaire)",
+  "Signes nerveux (incoordination tremblement)","Mortalité brusque",
+  "Lésions cutanée","Paralysie","Rougeur de la peau",
+  "Rougeur de la peau sous forme de dame","Diarrhée sanglante","Vomissement",
+  "Diarrhée jaunâtre","Diarrhée verdâtre","Diarrhée pâteuse sous forme de mayonnaise",
+  "Amaigrissement","Hyperthermie","Hypothermie","Larmoiement",
+  "Écoulement nasal","Plaie avec asticots blanc","Autres"
+];
+const checksWrap = document.getElementById('signesChecks');
+SIGNES.forEach((s,i)=>{
+  const id = 'signe'+i;
+  checksWrap.insertAdjacentHTML('beforeend',
+    `<label class="check-item" for="${id}"><input type="checkbox" id="${id}" value="${s}"> ${s}</label>`);
+});
+
+// ---- Radios ----
+function wireRadioGroup(containerId){
+  const c = document.getElementById(containerId);
+  c.querySelectorAll('.radio-opt').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      c.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      c.dataset.value = opt.dataset.val;
+      if(containerId==='typeRadios') onTypeChange(opt.dataset.val);
+    });
+  });
+}
+wireRadioGroup('typeRadios');
+wireRadioGroup('prelevRadios');
+wireRadioGroup('mVictimeSexeRadios');
+wireRadioGroup('mObservationRadios');
+
+function onTypeChange(val){
+  const detail = document.getElementById('detailBlock');
+  const morsure = document.getElementById('detailMorsure');
+  const banner = document.getElementById('banniereNegatif');
+  detail.classList.remove('show');
+  morsure.classList.remove('show');
+  banner.classList.remove('show');
+  if(val==='Aucun cas'){
+    banner.classList.add('show');
+  }else if(val==='Morsure animale'){
+    morsure.classList.add('show');
+  }else{
+    detail.classList.add('show');
+  }
+}
+
+document.getElementById('settingsToggle').addEventListener('click',()=>{
+  const b = document.getElementById('settingsBlock');
+  b.style.display = b.style.display==='none' ? 'block' : 'none';
+});
+
+// ---- IndexedDB ----
+let db;
+const req = indexedDB.open('vetSurveillanceDB', 1);
+req.onupgradeneeded = e=>{
+  const d = e.target.result;
+  if(!d.objectStoreNames.contains('submissions')){
+    d.createObjectStore('submissions',{keyPath:'localId',autoIncrement:true});
+  }
+};
+req.onsuccess = e=>{ db = e.target.result; refreshQueue(); };
+
+function addSubmission(record){
+  const tx = db.transaction('submissions','readwrite');
+  tx.objectStore('submissions').add(record);
+  tx.oncomplete = ()=>{ refreshQueue(); attemptSync(); };
+}
+function getAllSubmissions(cb){
+  const tx = db.transaction('submissions','readonly');
+  const store = tx.objectStore('submissions');
+  const out = [];
+  store.openCursor().onsuccess = e=>{
+    const cur = e.target.result;
+    if(cur){ out.push(cur.value); cur.continue(); } else { cb(out); }
+  };
+}
+function markSynced(localId){
+  const tx = db.transaction('submissions','readwrite');
+  const store = tx.objectStore('submissions');
+  const r = store.get(localId);
+  r.onsuccess = ()=>{
+    const rec = r.result;
+    if(rec){ rec.synced = true; store.put(rec); }
+    tx.oncomplete = refreshQueue;
+  };
+}
+
+function refreshQueue(){
+  getAllSubmissions(list=>{
+    const pending = list.filter(r=>!r.synced);
+    const badge = document.getElementById('pendingBadge');
+    if(pending.length>0){
+      badge.style.display='inline-block';
+      badge.textContent = pending.length + ' en attente';
+    } else {
+      badge.style.display='none';
+    }
+    const wrap = document.getElementById('queueList');
+    const empty = document.getElementById('queueEmpty');
+    wrap.innerHTML = '';
+    if(list.length===0){ empty.style.display='block'; return; }
+    empty.style.display='none';
+    list.slice().reverse().forEach(r=>{
+      wrap.insertAdjacentHTML('beforeend',
+        `<div class="queue-item"><span>${r.chefPoste||'—'} · ${r.sousPrefecture||'—'} · ${r.dateDeclaration||''}</span>
+        <span class="qtag ${r.synced?'done':'wait'}">${r.synced?'Envoyé':'En attente'}</span></div>`);
+    });
+  });
+}
+
+// ---- Connectivity + sync ----
+function setOnlineUI(){
+  const header = document.getElementById('signalHeader');
+  const body = document.body;
+  const online = navigator.onLine;
+  header.classList.toggle('online', online);
+  header.classList.toggle('offline', !online);
+  body.classList.toggle('online', online);
+  body.classList.toggle('offline', !online);
+  document.getElementById('statusText').textContent = online ? 'Connecté' : 'Hors ligne — les fiches sont sauvegardées';
+  if(online) attemptSync();
+}
+window.addEventListener('online', setOnlineUI);
+window.addEventListener('offline', setOnlineUI);
+setOnlineUI();
+
+function attemptSync(){
+  const url = localStorage.getItem('syncUrl');
+  if(!url || !navigator.onLine || !db) return;
+  getAllSubmissions(list=>{
+    const pending = list.filter(r=>!r.synced);
+    pending.forEach(rec=>{
+      fetch(url,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(rec)
+      }).then(()=>{ markSynced(rec.localId); showToast('Fiche synchronisée ✓'); })
+        .catch(()=>{ /* reste en attente, on réessaiera */ });
+    });
+  });
+}
+
+// ---- Settings persistence ----
+const syncUrlInput = document.getElementById('syncUrl');
+syncUrlInput.value = localStorage.getItem('syncUrl') || '';
+syncUrlInput.addEventListener('change', ()=>{
+  localStorage.setItem('syncUrl', syncUrlInput.value.trim());
+  attemptSync();
+});
+
+// ---- Toast ----
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// ---- Submit ----
+document.getElementById('submitBtn').addEventListener('click',()=>{
+  const sousPrefecture = document.getElementById('sousPrefecture').value;
+  const chefPoste = document.getElementById('chefPoste').value.trim();
+  const dateDeclaration = document.getElementById('dateDeclaration').value;
+  const type = document.getElementById('typeRadios').dataset.value;
+
+  if(!sousPrefecture || !chefPoste || !dateDeclaration || !type){
+    showToast('Merci de remplir la Sous-préfecture, le Chef de poste, la Date et le Type');
+    return;
+  }
+
+  let record = {
+    sousPrefecture, chefPoste, dateDeclaration, type,
+    horodateur: new Date().toISOString(),
+    synced: false
+  };
+
+  if(type === 'Cas suspect' || type === 'Cas probable'){
+    const maladie = document.getElementById('maladie').value;
+    const espece = document.getElementById('espece').value;
+    const localite = document.getElementById('localite').value.trim();
+    if(!maladie || !espece || !localite){
+      showToast('Merci de remplir Maladie, Espèce et Localité');
+      return;
+    }
+    const signes = Array.from(document.querySelectorAll('#signesChecks input:checked')).map(i=>i.value);
+    record = Object.assign(record,{
+      maladie, espece, localite,
+      eleveur: document.getElementById('eleveur').value.trim(),
+      dateSignes: document.getElementById('dateSignes').value,
+      effectif: document.getElementById('effectif').value,
+      malades: document.getElementById('malades').value,
+      morts: document.getElementById('morts').value,
+      signes: signes.join(', '),
+      prelevement: document.getElementById('prelevRadios').dataset.value || '',
+      typeEchantillon: document.getElementById('typeEchantillon').value.trim(),
+      mesures: document.getElementById('mesures').value.trim(),
+      suggestions: document.getElementById('suggestions').value.trim()
+    });
+  } else if(type === 'Morsure animale'){
+    const nom = document.getElementById('mVictimeNom').value.trim();
+    const sexe = document.getElementById('mVictimeSexeRadios').dataset.value;
+    const age = document.getElementById('mVictimeAge').value;
+    const quartier = document.getElementById('mVictimeQuartier').value.trim();
+    const typeMorsure = document.getElementById('mTypeMorsure').value;
+    const localisation = document.getElementById('mLocalisation').value;
+    const structure = document.getElementById('mStructure').value.trim();
+    const etatAnimal = document.getElementById('mEtatAnimal').value;
+    const vaccin = document.getElementById('mVaccinSelect').value;
+    const observation = document.getElementById('mObservationRadios').dataset.value;
+    if(!nom || !sexe || !age || !quartier || !typeMorsure || !localisation || !structure || !etatAnimal || !vaccin || !observation){
+      showToast('Merci de remplir tous les champs obligatoires de la morsure');
+      return;
+    }
+    record = Object.assign(record,{
+      mDateMorsure: document.getElementById('mDateMorsure').value,
+      mDateDeclaration: document.getElementById('mDateDeclaration').value,
+      mVictimeNom: nom,
+      mVictimeSexe: sexe,
+      mVictimeAge: age,
+      mVictimeProfession: document.getElementById('mVictimeProfession').value.trim(),
+      mVictimeQuartier: quartier,
+      mTypeMorsure: typeMorsure,
+      mLocalisation: localisation,
+      mStructure: structure,
+      mEtatAnimal: etatAnimal,
+      mVaccin: vaccin,
+      mAnimalSexe: document.getElementById('mAnimalSexeSelect').value || '',
+      mAnimalAge: document.getElementById('mAnimalAge').value.trim(),
+      mObservation: observation,
+      suggestions: document.getElementById('suggestions').value.trim()
+    });
+  } else {
+    record.suggestions = document.getElementById('suggestions').value.trim();
+  }
+
+  addSubmission(record);
+  showToast('Fiche enregistrée sur l\'appareil ✓');
+  document.getElementById('voForm').reset();
+  document.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+  document.getElementById('typeRadios').dataset.value = '';
+  document.getElementById('prelevRadios').dataset.value = '';
+  document.getElementById('mVictimeSexeRadios').dataset.value = '';
+  document.getElementById('mObservationRadios').dataset.value = '';
+  document.getElementById('detailBlock').classList.remove('show');
+  document.getElementById('detailMorsure').classList.remove('show');
+  document.getElementById('banniereNegatif').classList.remove('show');
+  document.getElementById('dateDeclaration').value = new Date().toISOString().slice(0,10);
+});
+
+document.getElementById('dateDeclaration').value = new Date().toISOString().slice(0,10);
+
+// ---- Service worker (offline caching of the app shell) ----
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// Retry sync every 30s while app open
+setInterval(attemptSync, 30000);
+</script>
+</body>
+</html>
