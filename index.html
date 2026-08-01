@@ -622,18 +622,59 @@ window.addEventListener('online', setOnlineUI);
 window.addEventListener('offline', setOnlineUI);
 setOnlineUI();
 
+function postViaHiddenForm(url, rec){
+  return new Promise((resolve)=>{
+    const iframeName = 'sync_frame_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const iframe = document.createElement('iframe');
+    iframe.name = iframeName;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = iframeName;
+    form.style.display = 'none';
+
+    Object.keys(rec).forEach(key=>{
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      const v = rec[key];
+      input.value = (v === undefined || v === null) ? '' : String(v);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+
+    let done = false;
+    const finish = ()=>{
+      if(done) return;
+      done = true;
+      resolve();
+      setTimeout(()=>{
+        if(form.parentNode) form.parentNode.removeChild(form);
+        if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 800);
+    };
+    iframe.addEventListener('load', finish);
+    // Filet de sécurité si l'évènement load ne se déclenche pas
+    setTimeout(finish, 5000);
+
+    form.submit();
+  });
+}
+
 function attemptSync(){
   const url = localStorage.getItem('syncUrl');
   if(!url || !navigator.onLine || !db) return;
   getAllSubmissions(list=>{
     const pending = list.filter(r=>!r.synced);
     pending.forEach(rec=>{
-      fetch(url,{
-        method:'POST',
-        mode:'no-cors',
-        body: JSON.stringify(rec)
-      }).then(()=>{ markSynced(rec.localId); showToast('Fiche synchronisée ✓'); })
-        .catch(()=>{ /* reste en attente, on réessaiera */ });
+      postViaHiddenForm(url, rec).then(()=>{
+        markSynced(rec.localId);
+        showToast('Fiche synchronisée ✓');
+      });
     });
   });
 }
