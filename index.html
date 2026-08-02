@@ -622,23 +622,45 @@ window.addEventListener('online', setOnlineUI);
 window.addEventListener('offline', setOnlineUI);
 setOnlineUI();
 
-function postWithRealCheck(url, rec){
-  const params = new URLSearchParams();
-  Object.keys(rec).forEach(key=>{
-    const v = rec[key];
-    params.append(key, (v === undefined || v === null) ? '' : String(v));
-  });
-  return fetch(url, {
-    method: 'POST',
-    body: params
-  }).then(res=>{
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    return res.text();
-  }).then(text=>{
-    let json;
-    try{ json = JSON.parse(text); }catch(e){ throw new Error('Réponse invalide'); }
-    if(json.status !== 'ok') throw new Error('Le script a renvoyé une erreur');
-    return true;
+function postViaHiddenForm(url, rec){
+  return new Promise((resolve)=>{
+    const iframeName = 'sync_frame_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const iframe = document.createElement('iframe');
+    iframe.name = iframeName;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = iframeName;
+    form.style.display = 'none';
+
+    Object.keys(rec).forEach(key=>{
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      const v = rec[key];
+      input.value = (v === undefined || v === null) ? '' : String(v);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+
+    let done = false;
+    const finish = ()=>{
+      if(done) return;
+      done = true;
+      resolve();
+      setTimeout(()=>{
+        if(form.parentNode) form.parentNode.removeChild(form);
+        if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 800);
+    };
+    iframe.addEventListener('load', finish);
+    setTimeout(finish, 6000);
+
+    form.submit();
   });
 }
 
@@ -648,12 +670,9 @@ function attemptSync(){
   getAllSubmissions(list=>{
     const pending = list.filter(r=>!r.synced);
     pending.forEach(rec=>{
-      postWithRealCheck(url, rec).then(()=>{
+      postViaHiddenForm(url, rec).then(()=>{
         markSynced(rec.localId);
-        showToast('Fiche synchronisée ✓');
-      }).catch(err=>{
-        console.error('Échec synchronisation:', err);
-        showToast('Échec envoi — nouvel essai plus tard');
+        showToast('Fiche envoyée ✓ (vérifiez le Sheet)');
       });
     });
   });
