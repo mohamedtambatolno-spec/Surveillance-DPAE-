@@ -418,6 +418,10 @@
         <option>Dysenterie porcine</option>
         <option>Autres</option>
       </select>
+      <div id="maladieAutreWrap" style="display:none;">
+        <label>Précisez la maladie</label>
+        <input type="text" id="maladieAutre" placeholder="Nom de la maladie observée">
+      </div>
 
       <label class="req">Espèce affectée</label>
       <select id="espece">
@@ -449,6 +453,10 @@
       <label class="req">Signes cliniques observés</label>
       <div class="checks" id="signesChecks">
         <!-- injecté en JS -->
+      </div>
+      <div id="signeAutreWrap" style="display:none;">
+        <label>Précisez le(s) signe(s) clinique(s)</label>
+        <input type="text" id="signeAutre" placeholder="Autre signe observé">
       </div>
 
       <label class="req">Prélèvement effectué</label>
@@ -507,6 +515,17 @@ SIGNES.forEach((s,i)=>{
   const id = 'signe'+i;
   checksWrap.insertAdjacentHTML('beforeend',
     `<label class="check-item" for="${id}"><input type="checkbox" id="${id}" value="${s}"> ${s}</label>`);
+});
+
+// ---- Champs "Autres" conditionnels ----
+document.getElementById('maladie').addEventListener('change', (e)=>{
+  document.getElementById('maladieAutreWrap').style.display =
+    (e.target.value === 'Autres') ? 'block' : 'none';
+});
+checksWrap.addEventListener('change', ()=>{
+  const autreCoche = Array.from(checksWrap.querySelectorAll('input:checked'))
+    .some(i=>i.value === 'Autres');
+  document.getElementById('signeAutreWrap').style.display = autreCoche ? 'block' : 'none';
 });
 
 // ---- Radios ----
@@ -737,14 +756,24 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   };
 
   if(type === 'Cas suspect' || type === 'Cas probable'){
-    const maladie = document.getElementById('maladie').value;
+    let maladie = document.getElementById('maladie').value;
     const espece = document.getElementById('espece').value;
     const localite = document.getElementById('localite').value.trim();
     if(!maladie || !espece || !localite){
       showToast('Merci de remplir Maladie, Espèce et Localité');
       return;
     }
-    const signes = Array.from(document.querySelectorAll('#signesChecks input:checked')).map(i=>i.value);
+    if(maladie === 'Autres'){
+      const precision = document.getElementById('maladieAutre').value.trim();
+      if(precision) maladie = 'Autres : ' + precision;
+    }
+    let signes = Array.from(document.querySelectorAll('#signesChecks input:checked')).map(i=>i.value);
+    if(signes.includes('Autres')){
+      const precisionSigne = document.getElementById('signeAutre').value.trim();
+      signes = signes.filter(s=>s!=='Autres');
+      if(precisionSigne) signes.push('Autres : ' + precisionSigne);
+      else signes.push('Autres');
+    }
     record = Object.assign(record,{
       maladie, espece, localite,
       eleveur: document.getElementById('eleveur').value.trim(),
@@ -806,6 +835,8 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   document.getElementById('detailBlock').classList.remove('show');
   document.getElementById('detailMorsure').classList.remove('show');
   document.getElementById('banniereNegatif').classList.remove('show');
+  document.getElementById('maladieAutreWrap').style.display = 'none';
+  document.getElementById('signeAutreWrap').style.display = 'none';
   document.getElementById('dateDeclaration').value = new Date().toISOString().slice(0,10);
 });
 
