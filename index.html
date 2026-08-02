@@ -556,7 +556,7 @@ req.onupgradeneeded = e=>{
     d.createObjectStore('submissions',{keyPath:'localId',autoIncrement:true});
   }
 };
-req.onsuccess = e=>{ db = e.target.result; refreshQueue(); };
+req.onsuccess = e=>{ db = e.target.result; refreshQueue(); attemptSync(); };
 
 function addSubmission(record){
   const tx = db.transaction('submissions','readwrite');
@@ -697,12 +697,17 @@ function resyncAll(){
 document.getElementById('resyncBtn').addEventListener('click', resyncAll);
 
 // ---- Settings persistence ----
+const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbz7AnxS0v47Yy-HIPMaggWzDmO4ml2xr8L6QQjw9j-BKildfSOkqF-CS6KU0OPENe5N8g/exec';
 const syncUrlInput = document.getElementById('syncUrl');
+if(!localStorage.getItem('syncUrl')){
+  localStorage.setItem('syncUrl', DEFAULT_SYNC_URL);
+}
 syncUrlInput.value = localStorage.getItem('syncUrl') || '';
 syncUrlInput.addEventListener('change', ()=>{
   localStorage.setItem('syncUrl', syncUrlInput.value.trim());
   attemptSync();
 });
+attemptSync();
 
 // ---- Toast ----
 let toastTimer;
